@@ -1,0 +1,521 @@
+.gitbaz-panel {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+	font-size: 12px;
+	border: 1px solid var(--borderColor-default, #d0d7de);
+	border-radius: 6px;
+	padding: 16px;
+	margin-bottom: 16px;
+	background: var(--bgColor-default, #fff);
+	color: var(--fgColor-default, #1f2328);
+}
+
+.gitbaz-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.gitbaz-title {
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-score-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.gitbaz-score {
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.gitbaz-tier {
+	font-size: 12px;
+	padding: 2px 8px;
+	border-radius: 12px;
+	font-weight: 600;
+}
+
+.gitbaz-points-label {
+	font-size: 12px;
+	color: var(--fgColor-muted, #656d76);
+}
+
+.tier-newcomer .gitbaz-tier {
+	background: var(--bgColor-neutral-muted, #eef0f2);
+	color: var(--fgColor-muted, #656d76);
+}
+.tier-regular .gitbaz-tier {
+	background: var(--bgColor-accent-muted, #ddf4ff);
+	color: var(--fgColor-accent, #0969da);
+}
+.tier-contributor .gitbaz-tier {
+	background: var(--bgColor-success-muted, #dafbe1);
+	color: var(--fgColor-success, #1a7f37);
+}
+.tier-trusted .gitbaz-tier {
+	background: var(--bgColor-attention-muted, #fff8c5);
+	color: var(--fgColor-attention, #9a6700);
+}
+.tier-maintainer .gitbaz-tier {
+	background: var(--bgColor-done-muted, #fbefff);
+	color: var(--fgColor-done, #8250df);
+}
+
+.gitbaz-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+
+.gitbaz-stat-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.gitbaz-stat-label {
+	color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-stat-value {
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.gitbaz-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding-top: 10px;
+	border-top: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-badge {
+	font-size: 12px;
+	padding: 2px 8px;
+	background: var(--bgColor-neutral-muted, #eef0f2);
+	border-radius: 12px;
+	color: var(--fgColor-muted, #656d76);
+	cursor: default;
+}
+
+.gitbaz-orgs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding-top: 10px;
+	border-top: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-orgs a {
+	display: inline-block;
+	line-height: 0;
+}
+
+.gitbaz-org-avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 4px;
+	border: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-loading {
+	color: var(--fgColor-muted, #656d76);
+	font-size: 12px;
+}
+
+.gitbaz-error-msg {
+	color: var(--fgColor-danger, #cf222e);
+	font-size: 12px;
+	margin: 0;
+}
+
+.gitbaz-setup {
+	text-align: center;
+	padding: 8px 0;
+}
+
+.gitbaz-setup p {
+	margin: 0 0 8px;
+	color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-setup-btn {
+	display: inline-block;
+	padding: 4px 12px;
+	font-size: 12px;
+	font-weight: 600;
+	border: 1px solid var(--borderColor-default, #d0d7de);
+	border-radius: 6px;
+	background: var(--bgColor-default, #f6f8fa);
+	color: var(--fgColor-default, #1f2328);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.gitbaz-setup-btn:hover {
+	background: var(--bgColor-muted, #eef0f2);
+}
+
+/* Context panel status badges */
+.gitbaz-context-status {
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 12px;
+}
+
+.state-open {
+	background: var(--bgColor-success-muted, #dafbe1);
+	color: var(--fgColor-success, #1a7f37);
+}
+
+.state-closed {
+	background: var(--bgColor-danger-muted, #ffebe9);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+.state-merged {
+	background: var(--bgColor-done-muted, #fbefff);
+	color: var(--fgColor-done, #8250df);
+}
+
+/* Tabs */
+.gitbaz-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+	padding-bottom: 8px;
+}
+
+.gitbaz-tab {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	color: var(--fgColor-muted, #656d76);
+	background: none;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.gitbaz-tab:hover {
+	color: var(--fgColor-default, #1f2328);
+	background: var(--bgColor-neutral-muted, #eef0f2);
+}
+
+.gitbaz-tab.active {
+	color: var(--fgColor-default, #1f2328);
+	background: var(--bgColor-neutral-muted, #eef0f2);
+	border-color: var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-tab-avatar {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+}
+
+.gitbaz-tab-icon {
+	width: 20px;
+	height: 20px;
+	fill: currentColor;
+}
+
+.gitbaz-tab-pane {
+	display: none;
+}
+
+.gitbaz-tab-pane.active {
+	display: block;
+}
+
+/* AI indicator */
+.gitbaz-ai-indicator {
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 12px;
+	cursor: help;
+}
+
+.ai-definitive {
+	background: var(--bgColor-attention-muted, #fff8c5);
+	color: var(--fgColor-attention, #9a6700);
+}
+
+.ai-high {
+	background: var(--bgColor-attention-muted, #fff8c5);
+	color: var(--fgColor-attention, #9a6700);
+}
+
+.ai-low {
+	background: var(--bgColor-neutral-muted, #eef0f2);
+	color: var(--fgColor-muted, #656d76);
+}
+
+/* Vouch status */
+.gitbaz-vouch-status {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 12px;
+	cursor: default;
+}
+
+.vouch-vouched {
+	background: var(--bgColor-success-muted, #dafbe1);
+	color: var(--fgColor-success, #1a7f37);
+}
+
+.vouch-denounced {
+	background: var(--bgColor-danger-muted, #ffebe9);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+.vouch-none {
+	color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-vouch-actions {
+	display: flex;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.gitbaz-vouch-btn {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border: 1px solid var(--borderColor-default, #d0d7de);
+	border-radius: 6px;
+	background: var(--bgColor-default, #f6f8fa);
+	color: var(--fgColor-default, #1f2328);
+	cursor: pointer;
+	transition: border-color 0.15s;
+}
+
+.gitbaz-vouch-btn:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.vouch-btn-vouch:hover:not(:disabled) {
+	border-color: var(--fgColor-success, #1a7f37);
+	color: var(--fgColor-success, #1a7f37);
+}
+
+.vouch-btn-denounce:hover:not(:disabled) {
+	border-color: var(--fgColor-danger, #cf222e);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+.vouch-btn-unvouch:hover:not(:disabled) {
+	border-color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-denounce-dialog {
+	display: flex;
+	gap: 4px;
+	margin-top: 6px;
+}
+
+.gitbaz-denounce-dialog input {
+	flex: 1;
+	font-size: 11px;
+	padding: 2px 6px;
+	border: 1px solid var(--borderColor-default, #d0d7de);
+	border-radius: 4px;
+	background: var(--bgColor-default, #fff);
+	color: var(--fgColor-default, #1f2328);
+}
+
+.gitbaz-denounce-dialog button {
+	font-size: 11px;
+	padding: 2px 6px;
+	border: 1px solid var(--borderColor-default, #d0d7de);
+	border-radius: 4px;
+	background: var(--bgColor-default, #f6f8fa);
+	color: var(--fgColor-default, #1f2328);
+	cursor: pointer;
+}
+
+/* Activity heatmap */
+.gitbaz-activity {
+	padding: 8px 0;
+	margin-top: 10px;
+	border-top: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-activity-summary {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 8px;
+}
+
+.gitbaz-activity-total {
+	font-weight: 600;
+	font-size: 13px;
+}
+
+.gitbaz-activity-period {
+	font-size: 11px;
+	color: var(--fgColor-muted, #848d97);
+}
+
+.gitbaz-heatmap {
+	display: grid;
+	grid-template-rows: repeat(7, 1fr);
+	grid-auto-flow: column;
+	grid-auto-columns: 1fr;
+	gap: 2px;
+}
+
+.gitbaz-heatmap-cell {
+	aspect-ratio: 1;
+	border-radius: 2px;
+	min-width: 0;
+}
+
+.gitbaz-heatmap-cell.level-0 {
+	background: var(--bgColor-neutral-muted, #161b22);
+}
+.gitbaz-heatmap-cell.level-1 {
+	background: #0e4429;
+}
+.gitbaz-heatmap-cell.level-2 {
+	background: #006d32;
+}
+.gitbaz-heatmap-cell.level-3 {
+	background: #26a641;
+}
+.gitbaz-heatmap-cell.level-4 {
+	background: #39d353;
+}
+
+.gitbaz-heatmap-legend {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	justify-content: flex-end;
+	margin-top: 4px;
+	font-size: 10px;
+	color: var(--fgColor-muted, #848d97);
+}
+
+.gitbaz-heatmap-legend .gitbaz-heatmap-cell {
+	width: 10px;
+	height: 10px;
+	display: inline-block;
+}
+
+.gitbaz-streaks {
+	margin-top: 8px;
+}
+
+/* Repository context */
+.gitbaz-repo-stats {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 10px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-repo-stat {
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.gitbaz-repo-meta {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 10px;
+	font-size: 12px;
+	color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-repo-lang {
+	font-weight: 600;
+	color: var(--fgColor-default, #1f2328);
+}
+
+.gitbaz-repo-license {
+	color: var(--fgColor-muted, #656d76);
+}
+
+.gitbaz-archived-badge {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 12px;
+	background: var(--bgColor-attention-muted, #fff8c5);
+	color: var(--fgColor-attention, #9a6700);
+}
+
+.gitbaz-scorecard {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-scorecard-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.gitbaz-scorecard-header .gitbaz-stat-label {
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-size: 11px;
+}
+
+.gitbaz-scorecard-checks {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+/* Bot panel */
+.gitbaz-bot-panel {
+	text-align: center;
+	padding: 8px 0;
+}
+
+.gitbaz-bot-icon {
+	font-size: 24px;
+	margin-bottom: 4px;
+}
+
+.gitbaz-bot-label {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.gitbaz-bot-description {
+	font-size: 12px;
+	color: var(--fgColor-muted, #656d76);
+}

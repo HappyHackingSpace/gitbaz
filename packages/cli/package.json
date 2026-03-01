@@ -1,0 +1,36 @@
+{
+	"name": "@happyhackingspace/gitbaz-cli",
+	"version": "0.1.0",
+	"description": "GitBaz CLI. GitHub contributor context at a glance",
+	"type": "module",
+	"bin": {
+		"gitbaz": "./dist/index.js"
+	},
+	"files": ["dist"],
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/HappyHackingSpace/gitbaz.git",
+		"directory": "packages/cli"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"test": "vitest run --passWithNoTests",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf dist"
+	},
+	"dependencies": {
+		"@happyhackingspace/gitbaz": "workspace:*",
+		"commander": "^13.1.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"tsup": "^8.3.5",
+		"vitest": "^3.0.5"
+	}
+}

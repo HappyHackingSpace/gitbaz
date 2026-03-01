@@ -1,0 +1,20 @@
+{
+	"name": "gitbaz",
+	"private": true,
+	"packageManager": "bun@1.3.6",
+	"workspaces": ["packages/*"],
+	"scripts": {
+		"build": "turbo build",
+		"test": "turbo test",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"typecheck": "turbo typecheck",
+		"dev": "turbo dev",
+		"clean": "turbo clean && rm -rf node_modules"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"turbo": "^2.3.3",
+		"typescript": "^5.7.2"
+	}
+}

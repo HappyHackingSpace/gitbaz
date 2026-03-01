@@ -1,0 +1,24 @@
+on:
+  schedule:
+    - cron: "0 0 * * 1" # Every Monday at midnight UTC
+  workflow_dispatch:
+
+name: "Vouch - Sync CODEOWNERS"
+
+concurrency:
+  group: vouch-manage
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mitchellh/vouch/action/sync-codeowners@v1.4.2
+        with:
+          repo: ${{ github.repository }}
+          pull-request: "true"
+          merge-immediately: "true"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

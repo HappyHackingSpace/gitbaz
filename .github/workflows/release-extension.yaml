@@ -1,0 +1,41 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - "ext/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build extension
+        run: bun run build
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/ext/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Zip extension
+        run: |
+          cd packages/extension/.output/chrome-mv3
+          zip -r ../../../../gitbaz-extension-${{ steps.version.outputs.version }}.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Extension v${{ steps.version.outputs.version }}"
+          files: gitbaz-extension-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true

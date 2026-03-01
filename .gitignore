@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.output/
+
+# Bun
+bun.lockb
+
+# Cache
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# GitBaz CLI config
+.gitbaz/
+
+# Extension build
+packages/extension/.wxt/
+
+# Test coverage
+coverage/

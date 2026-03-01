@@ -1,0 +1,41 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - "cli/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/cli/v}" >> "$GITHUB_OUTPUT"
+
+      - name: Package CLI
+        run: |
+          cd packages/cli
+          tar -czf ../../gitbaz-cli-${{ steps.version.outputs.version }}.tar.gz dist/ package.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "CLI v${{ steps.version.outputs.version }}"
+          files: gitbaz-cli-${{ steps.version.outputs.version }}.tar.gz
+          generate_release_notes: true

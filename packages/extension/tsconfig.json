@@ -1,0 +1,12 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "./dist",
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"paths": {
+			"@happyhackingspace/gitbaz": ["../core/src/index.ts"]
+		}
+	},
+	"include": ["entrypoints/**/*.ts", "utils/**/*.ts", ".wxt/wxt.d.ts"],
+	"exclude": ["node_modules", "dist", ".output", ".wxt"]
+}

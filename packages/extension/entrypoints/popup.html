@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body {
+			width: 320px;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+			font-size: 13px;
+			color: #1f2328;
+			padding: 16px;
+		}
+		h1 { font-size: 16px; margin-bottom: 12px; }
+		.status { margin-bottom: 12px; color: #656d76; }
+		.status.authenticated { color: #1a7f37; }
+		input {
+			width: 100%;
+			padding: 6px 10px;
+			border: 1px solid #d0d7de;
+			border-radius: 6px;
+			font-size: 13px;
+			margin-bottom: 8px;
+		}
+		button {
+			padding: 6px 14px;
+			border: 1px solid #d0d7de;
+			border-radius: 6px;
+			background: #f6f8fa;
+			cursor: pointer;
+			font-size: 13px;
+			margin-right: 4px;
+		}
+		button:hover { background: #eef0f2; }
+		button.primary { background: #2da44e; color: #fff; border-color: #2da44e; }
+		button.primary:hover { background: #218838; }
+		#result { margin-top: 12px; white-space: pre-wrap; font-size: 12px; }
+	</style>
+</head>
+<body>
+	<h1>GitBaz</h1>
+	<div id="auth-status" class="status">Checking...</div>
+	<div id="lookup">
+		<input type="text" id="username" placeholder="GitHub username" />
+		<button class="primary" id="lookup-btn">Get Contributor Score</button>
+	</div>
+	<div id="result"></div>
+	<script src="./popup/main.ts" type="module"></script>
+</body>
+</html>
