@@ -18,10 +18,26 @@ export const parseGitHubUrl = (url: string): ParsedGitHubUrl | undefined => {
 
 		// Skip GitHub global/non-repo paths
 		const NON_REPO_PREFIXES = [
-			"settings", "marketplace", "explore", "topics", "sponsors",
-			"issues", "pulls", "notifications", "new", "codespaces",
-			"features", "trending", "collections", "events", "about",
-			"pricing", "login", "signup", "organizations", "stars",
+			"settings",
+			"marketplace",
+			"explore",
+			"topics",
+			"sponsors",
+			"issues",
+			"pulls",
+			"notifications",
+			"new",
+			"codespaces",
+			"features",
+			"trending",
+			"collections",
+			"events",
+			"about",
+			"pricing",
+			"login",
+			"signup",
+			"organizations",
+			"stars",
 		];
 		if (NON_REPO_PREFIXES.includes(segments[0])) return undefined;
 

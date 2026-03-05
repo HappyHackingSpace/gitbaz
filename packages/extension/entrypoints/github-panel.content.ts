@@ -830,7 +830,11 @@ const loadActivityIntoPlaceholder = (username: string): void => {
 
 // --- Helpers ---
 
-const waitFor = async <T>(fn: () => T | undefined, maxRetries: number, intervalMs: number): Promise<T | undefined> => {
+const waitFor = async <T>(
+	fn: () => T | undefined,
+	maxRetries: number,
+	intervalMs: number,
+): Promise<T | undefined> => {
 	let result = fn();
 	for (let i = 0; i < maxRetries && !result; i++) {
 		await new Promise((r) => setTimeout(r, intervalMs));
@@ -852,68 +856,133 @@ let lastUrl = "";
 let loadGeneration = 0;
 
 const loadPanel = async (): Promise<void> => {
-  try {
-	if (!chrome.runtime?.id) return;
+	try {
+		if (!chrome.runtime?.id) return;
 
-	const currentUrl = window.location.href;
-	if (currentUrl === lastUrl && document.getElementById(PANEL_ID)) return;
-	lastUrl = currentUrl;
+		const currentUrl = window.location.href;
+		if (currentUrl === lastUrl && document.getElementById(PANEL_ID)) return;
+		lastUrl = currentUrl;
 
-	const generation = ++loadGeneration;
-	const isStale = () => generation !== loadGeneration;
+		const generation = ++loadGeneration;
+		const isStale = () => generation !== loadGeneration;
 
-	const parsed = parseGitHubUrl(currentUrl);
-	if (!parsed || parsed.type === "unknown") return;
+		const parsed = parseGitHubUrl(currentUrl);
+		if (!parsed || parsed.type === "unknown") return;
 
-	const tokenResponse = await sendMsg<TokenResponse>({ type: "GET_TOKEN" });
-	if (isStale()) return;
-	if (!tokenResponse.token) {
-		injectPanel(createSetupPanel());
-		return;
-	}
-
-	// Repo pages: no author detection needed, show repo context directly
-	if (parsed.type === "repo") {
-		const repoTarget = await waitFor(findRepoSidebar, 10, 300);
-		if (!repoTarget || isStale()) return;
-		injectPanel(
-			buildSinglePanel("Repository", '<span class="gitbaz-loading">Loading...</span>'),
-			undefined,
-			repoTarget,
-		);
-		const repo = toRepoContext(parsed);
-		const response = await sendMsg<RepoContextResponse>({
-			type: "GET_REPO_CONTEXT",
-			repo,
-		});
+		const tokenResponse = await sendMsg<TokenResponse>({ type: "GET_TOKEN" });
 		if (isStale()) return;
-		if (response.result) {
-			injectPanel(
-				buildSinglePanel("Repository", renderRepoContent(response.result)),
-				undefined,
-				repoTarget,
-			);
-		} else {
-			injectPanel(
-				createErrorPanel(response.error ?? "Failed to load repository"),
-				undefined,
-				repoTarget,
-			);
+		if (!tokenResponse.token) {
+			injectPanel(createSetupPanel());
+			return;
 		}
-		return;
-	}
 
-	// Wait for both author and sidebar to be available after turbo navigation
-	const [username, sidebar] = await Promise.all([
-		waitFor(findAuthorUsername, 10, 300),
-		waitFor(findSidebar, 10, 300),
-	]);
-	if (!username || !sidebar || isStale()) return;
+		// Repo pages: no author detection needed, show repo context directly
+		if (parsed.type === "repo") {
+			const repoTarget = await waitFor(findRepoSidebar, 10, 300);
+			if (!repoTarget || isStale()) return;
+			injectPanel(
+				buildSinglePanel("Repository", '<span class="gitbaz-loading">Loading...</span>'),
+				undefined,
+				repoTarget,
+			);
+			const repo = toRepoContext(parsed);
+			const response = await sendMsg<RepoContextResponse>({
+				type: "GET_REPO_CONTEXT",
+				repo,
+			});
+			if (isStale()) return;
+			if (response.result) {
+				injectPanel(
+					buildSinglePanel("Repository", renderRepoContent(response.result)),
+					undefined,
+					repoTarget,
+				);
+			} else {
+				injectPanel(
+					createErrorPanel(response.error ?? "Failed to load repository"),
+					undefined,
+					repoTarget,
+				);
+			}
+			return;
+		}
 
-	// Bots: show bot panel immediately, skip API call
-	const botCheck = detectBot(username);
-	if (botCheck.isBot) {
+		// Wait for both author and sidebar to be available after turbo navigation
+		const [username, sidebar] = await Promise.all([
+			waitFor(findAuthorUsername, 10, 300),
+			waitFor(findSidebar, 10, 300),
+		]);
+		if (!username || !sidebar || isStale()) return;
+
+		// Bots: show bot panel immediately, skip API call
+		const botCheck = detectBot(username);
+		if (botCheck.isBot) {
+			const ref = toContributionRef(parsed);
+			const contextLabel =
+				parsed.type === "pull"
+					? "Pull Request"
+					: parsed.type === "issue"
+						? "Issue"
+						: parsed.type === "discussion"
+							? "Discussion"
+							: null;
+
+			if (ref && contextLabel) {
+				const botHtml = `${renderBotContent(username)}<div class="gitbaz-activity-placeholder"></div>`;
+				const tabs: TabDef[] = [
+					{ id: "contributor", label: "Contributor", icon: avatarIcon(username), content: botHtml },
+					{ id: "context", label: contextLabel, icon: contextIcon(parsed.type!), content: "" },
+				];
+
+				const loaded: Record<string, boolean> = { contributor: true };
+
+				const loadTab = async (tabId: string, paneEl: HTMLElement) => {
+					if (loaded[tabId]) return;
+					loaded[tabId] = true;
+
+					if (tabId === "context" && ref) {
+						paneEl.innerHTML = '<span class="gitbaz-loading">Loading...</span>';
+						const msgType =
+							parsed.type === "pull"
+								? "GET_PULL_REQUEST"
+								: parsed.type === "issue"
+									? "GET_ISSUE"
+									: "GET_DISCUSSION";
+						const response = await sendMsg<
+							PullRequestResponse | IssueResponse | DiscussionResponse
+						>({
+							type: msgType,
+							ref,
+						});
+						if (response.result) {
+							if (parsed.type === "pull") {
+								paneEl.innerHTML = renderPullRequestContent(response.result as PullRequestContext);
+							} else if (parsed.type === "issue") {
+								paneEl.innerHTML = renderIssueContent(response.result as IssueContext);
+							} else {
+								paneEl.innerHTML = renderDiscussionContent(response.result as DiscussionContext);
+							}
+						} else {
+							paneEl.innerHTML = `<p class="gitbaz-error-msg">${response.error ?? "Failed to load"}</p>`;
+						}
+					}
+				};
+
+				injectPanel(buildTabbedPanel(tabs, "contributor"), loadTab);
+				loadActivityIntoPlaceholder(username);
+			} else {
+				const botHtml = `${renderBotContent(username)}<div class="gitbaz-activity-placeholder"></div>`;
+				injectPanel(buildSinglePanel("Contributor", botHtml));
+				loadActivityIntoPlaceholder(username);
+			}
+			return;
+		}
+
+		injectPanel(createLoadingPanel());
+
 		const ref = toContributionRef(parsed);
+		const repo = toRepoContext(parsed);
+
 		const contextLabel =
 			parsed.type === "pull"
 				? "Pull Request"
@@ -924,20 +993,65 @@ const loadPanel = async (): Promise<void> => {
 						: null;
 
 		if (ref && contextLabel) {
-			const botHtml = `${renderBotContent(username)}<div class="gitbaz-activity-placeholder"></div>`;
+			// All tabs lazy-load: render tabs immediately, load data on demand
+			const loadingHtml = '<span class="gitbaz-loading">Loading...</span>';
 			const tabs: TabDef[] = [
-				{ id: "contributor", label: "Contributor", icon: avatarIcon(username), content: botHtml },
+				{
+					id: "contributor",
+					label: "Contributor",
+					icon: avatarIcon(username),
+					content: loadingHtml,
+				},
 				{ id: "context", label: contextLabel, icon: contextIcon(parsed.type!), content: "" },
 			];
 
-			const loaded: Record<string, boolean> = { contributor: true };
+			const loaded: Record<string, boolean> = {};
 
 			const loadTab = async (tabId: string, paneEl: HTMLElement) => {
 				if (loaded[tabId]) return;
 				loaded[tabId] = true;
 
-				if (tabId === "context" && ref) {
-					paneEl.innerHTML = '<span class="gitbaz-loading">Loading...</span>';
+				if (tabId === "contributor") {
+					paneEl.innerHTML = loadingHtml;
+					const [scoreResponse, vouchResponse, collabResponse] = await Promise.all([
+						sendMsg<ScoreResponse>({
+							type: "GET_SCORE",
+							username,
+							repo,
+						}),
+						sendMsg<VouchStatusResponse>({
+							type: "GET_VOUCH_STATUS",
+							username,
+							repo,
+						}),
+						sendMsg<CollaboratorResponse>({
+							type: "CHECK_COLLABORATOR",
+							repo,
+						}),
+					]);
+
+					if (scoreResponse.result) {
+						const isCollab = collabResponse.result === true;
+						const showActions = isCollab && !!ref && !!vouchResponse.result?.hasVouchFile;
+
+						paneEl.innerHTML = `${renderScoreContent(scoreResponse.result, {
+							vouch: vouchResponse.result,
+							showVouchActions: showActions,
+						})}<div class="gitbaz-activity-placeholder"></div>`;
+
+						if (showActions) {
+							wireVouchActions(paneEl, username, repo, ref.number);
+						}
+
+						loadActivityIntoPane(paneEl, username);
+					} else if (scoreResponse.error?.startsWith("bot:")) {
+						paneEl.innerHTML = `${renderBotContent(username)}<div class="gitbaz-activity-placeholder"></div>`;
+						loadActivityIntoPane(paneEl, username);
+					} else {
+						paneEl.innerHTML = `<p class="gitbaz-error-msg">${scoreResponse.error ?? "Failed to load"}</p>`;
+					}
+				} else if (tabId === "context" && ref) {
+					paneEl.innerHTML = loadingHtml;
 					const msgType =
 						parsed.type === "pull"
 							? "GET_PULL_REQUEST"
@@ -963,137 +1077,34 @@ const loadPanel = async (): Promise<void> => {
 			};
 
 			injectPanel(buildTabbedPanel(tabs, "contributor"), loadTab);
-			loadActivityIntoPlaceholder(username);
 		} else {
-			const botHtml = `${renderBotContent(username)}<div class="gitbaz-activity-placeholder"></div>`;
-			injectPanel(buildSinglePanel("Contributor", botHtml));
-			loadActivityIntoPlaceholder(username);
-		}
-		return;
-	}
-
-	injectPanel(createLoadingPanel());
-
-	const ref = toContributionRef(parsed);
-	const repo = toRepoContext(parsed);
-
-	const contextLabel =
-		parsed.type === "pull"
-			? "Pull Request"
-			: parsed.type === "issue"
-				? "Issue"
-				: parsed.type === "discussion"
-					? "Discussion"
-					: null;
-
-	if (ref && contextLabel) {
-		// All tabs lazy-load: render tabs immediately, load data on demand
-		const loadingHtml = '<span class="gitbaz-loading">Loading...</span>';
-		const tabs: TabDef[] = [
-			{ id: "contributor", label: "Contributor", icon: avatarIcon(username), content: loadingHtml },
-			{ id: "context", label: contextLabel, icon: contextIcon(parsed.type!), content: "" },
-		];
-
-		const loaded: Record<string, boolean> = {};
-
-		const loadTab = async (tabId: string, paneEl: HTMLElement) => {
-			if (loaded[tabId]) return;
-			loaded[tabId] = true;
-
-			if (tabId === "contributor") {
-				paneEl.innerHTML = loadingHtml;
-				const [scoreResponse, vouchResponse, collabResponse] = await Promise.all([
-					sendMsg<ScoreResponse>({
-						type: "GET_SCORE",
-						username,
-						repo,
-					}),
-					sendMsg<VouchStatusResponse>({
-						type: "GET_VOUCH_STATUS",
-						username,
-						repo,
-					}),
-					sendMsg<CollaboratorResponse>({
-						type: "CHECK_COLLABORATOR",
-						repo,
-					}),
-				]);
-
-				if (scoreResponse.result) {
-					const isCollab = collabResponse.result === true;
-					const showActions = isCollab && !!ref && !!vouchResponse.result?.hasVouchFile;
-
-					paneEl.innerHTML = `${renderScoreContent(scoreResponse.result, {
-						vouch: vouchResponse.result,
-						showVouchActions: showActions,
-					})}<div class="gitbaz-activity-placeholder"></div>`;
-
-					if (showActions) {
-						wireVouchActions(paneEl, username, repo, ref.number);
-					}
-
-					loadActivityIntoPane(paneEl, username);
-				} else if (scoreResponse.error?.startsWith("bot:")) {
-					paneEl.innerHTML = `${renderBotContent(username)}<div class="gitbaz-activity-placeholder"></div>`;
-					loadActivityIntoPane(paneEl, username);
-				} else {
-					paneEl.innerHTML = `<p class="gitbaz-error-msg">${scoreResponse.error ?? "Failed to load"}</p>`;
-				}
-			} else if (tabId === "context" && ref) {
-				paneEl.innerHTML = loadingHtml;
-				const msgType =
-					parsed.type === "pull"
-						? "GET_PULL_REQUEST"
-						: parsed.type === "issue"
-							? "GET_ISSUE"
-							: "GET_DISCUSSION";
-				const response = await sendMsg<PullRequestResponse | IssueResponse | DiscussionResponse>({
-					type: msgType,
-					ref,
-				});
-				if (response.result) {
-					if (parsed.type === "pull") {
-						paneEl.innerHTML = renderPullRequestContent(response.result as PullRequestContext);
-					} else if (parsed.type === "issue") {
-						paneEl.innerHTML = renderIssueContent(response.result as IssueContext);
-					} else {
-						paneEl.innerHTML = renderDiscussionContent(response.result as DiscussionContext);
-					}
-				} else {
-					paneEl.innerHTML = `<p class="gitbaz-error-msg">${response.error ?? "Failed to load"}</p>`;
-				}
+			// No context (not a PR/issue/discussion page) — single contributor panel
+			injectPanel(createLoadingPanel());
+			const [scoreResponse, vouchResponse] = await Promise.all([
+				sendMsg<ScoreResponse>({
+					type: "GET_SCORE",
+					username,
+					repo,
+				}),
+				sendMsg<VouchStatusResponse>({
+					type: "GET_VOUCH_STATUS",
+					username,
+					repo,
+				}),
+			]);
+			if (scoreResponse.error) {
+				injectPanel(createErrorPanel(scoreResponse.error));
+			} else if (scoreResponse.result) {
+				const content = `${renderScoreContent(scoreResponse.result, {
+					vouch: vouchResponse.result,
+				})}<div class="gitbaz-activity-placeholder"></div>`;
+				injectPanel(buildSinglePanel("Contributor", content));
+				loadActivityIntoPlaceholder(username);
 			}
-		};
-
-		injectPanel(buildTabbedPanel(tabs, "contributor"), loadTab);
-	} else {
-		// No context (not a PR/issue/discussion page) — single contributor panel
-		injectPanel(createLoadingPanel());
-		const [scoreResponse, vouchResponse] = await Promise.all([
-			sendMsg<ScoreResponse>({
-				type: "GET_SCORE",
-				username,
-				repo,
-			}),
-			sendMsg<VouchStatusResponse>({
-				type: "GET_VOUCH_STATUS",
-				username,
-				repo,
-			}),
-		]);
-		if (scoreResponse.error) {
-			injectPanel(createErrorPanel(scoreResponse.error));
-		} else if (scoreResponse.result) {
-			const content = `${renderScoreContent(scoreResponse.result, {
-				vouch: vouchResponse.result,
-			})}<div class="gitbaz-activity-placeholder"></div>`;
-			injectPanel(buildSinglePanel("Contributor", content));
-			loadActivityIntoPlaceholder(username);
 		}
+	} catch {
+		// Extension context invalidated or navigation race — ignore
 	}
-  } catch {
-	// Extension context invalidated or navigation race — ignore
-  }
 };
 
 export default defineContentScript({

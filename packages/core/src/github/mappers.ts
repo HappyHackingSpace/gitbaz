@@ -66,11 +66,7 @@ export const mapGraphQLToUserStats = (
 		w.contributionDays.map((d) => d.contributionCount),
 	);
 
-	const automation = detectAutomation(
-		dailyCounts,
-		totalCommits,
-		user.allPullRequests.totalCount,
-	);
+	const automation = detectAutomation(dailyCounts, totalCommits, user.allPullRequests.totalCount);
 
 	return {
 		username,
