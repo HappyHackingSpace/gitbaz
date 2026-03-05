@@ -2,6 +2,8 @@ import { Octokit } from "@octokit/core";
 import { calculateStreaks } from "../activity/streaks.js";
 import { buildCacheKey, buildContextCacheKey, buildRepoCacheKey } from "../cache/utils.js";
 import { DEFAULT_CACHE_TTL, VOUCH_CACHE_TTL } from "../constants.js";
+import { analyzeKnowledgeSilos } from "../context/knowledge-silo.js";
+import { computeBusFactor } from "../context/knowledge-silo.js";
 import { detectBot } from "../contributor/bot-detect.js";
 import { calculateScore } from "../contributor/score.js";
 import {
@@ -13,6 +15,7 @@ import {
 	UserNotFoundError,
 } from "../errors.js";
 import type {
+	BusFactor,
 	CacheAdapter,
 	ContributionRef,
 	ContributorActivity,
@@ -21,6 +24,7 @@ import type {
 	GitBazClient,
 	GitBazClientOptions,
 	IssueContext,
+	KnowledgeSiloResult,
 	PullRequestContext,
 	RepoContext,
 	RepositoryContext,
@@ -31,6 +35,7 @@ import type {
 	VouchLookupResult,
 } from "../types.js";
 import { lookupVouchStatus, parseVouchFile } from "../vouch/parse.js";
+import { buildBlameQuery } from "./blame-queries.js";
 import {
 	DISCUSSION_QUERY,
 	ISSUE_QUERY,
@@ -40,10 +45,12 @@ import {
 import { USER_ACTIVITY_QUERY, USER_STATS_QUERY } from "./graphql-queries.js";
 import {
 	type GraphQLActivityResponse,
+	type GraphQLBlameResponse,
 	type GraphQLDiscussionResponse,
 	type GraphQLIssueResponse,
 	type GraphQLPullRequestResponse,
 	type GraphQLRepositoryResponse,
+	mapBlameResponse,
 	mapGraphQLToActivity,
 	mapGraphQLToDiscussionContext,
 	mapGraphQLToIssueContext,
@@ -262,6 +269,72 @@ export const createGitBazClient = (options: GitBazClientOptions = {}): GitBazCli
 		}
 	};
 
+	const getBlameAnalysis = async (
+		repo: RepoContext,
+		filePaths: readonly string[],
+	): Promise<KnowledgeSiloResult> => {
+		if (filePaths.length === 0) {
+			return { files: [], criticalCount: 0, highCount: 0, analyzedFiles: 0, totalFiles: 0 };
+		}
+
+		const cacheKey = `blame:${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}:${filePaths.slice(0, 5).join(",")}:${filePaths.length}`;
+
+		if (cache) {
+			const cached = await cache.get<KnowledgeSiloResult>(cacheKey);
+			if (cached) return cached;
+		}
+
+		try {
+			const query = buildBlameQuery(repo.owner, repo.repo, "HEAD", filePaths);
+			const data = (await octokit.graphql(query)) as GraphQLBlameResponse;
+			const blameByFile = mapBlameResponse(data, filePaths);
+			const result = analyzeKnowledgeSilos(blameByFile, filePaths, filePaths.length);
+
+			if (cache) {
+				await cache.set(cacheKey, result, cacheTtl);
+			}
+
+			return result;
+		} catch {
+			return {
+				files: [],
+				criticalCount: 0,
+				highCount: 0,
+				analyzedFiles: 0,
+				totalFiles: filePaths.length,
+			};
+		}
+	};
+
+	const getBusFactor = async (repo: RepoContext): Promise<BusFactor | null> => {
+		const cacheKey = `busfactor:${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}`;
+
+		if (cache) {
+			const cached = await cache.get<BusFactor>(cacheKey);
+			if (cached) return cached;
+		}
+
+		try {
+			const res = await octokit.request("GET /repos/{owner}/{repo}/stats/contributors", {
+				owner: repo.owner,
+				repo: repo.repo,
+			});
+			if (res.status !== 200 || !Array.isArray(res.data)) return null;
+
+			const stats = (res.data as { author: { login: string } | null; total: number }[])
+				.filter((c): c is { author: { login: string }; total: number } => c.author !== null)
+				.map((c) => ({ login: c.author.login, commits: c.total }));
+
+			const result = computeBusFactor(stats);
+			if (cache) {
+				await cache.set(cacheKey, result, cacheTtl);
+			}
+			return result;
+		} catch {
+			return null;
+		}
+	};
+
 	const getRepositoryContext = async (repo: RepoContext): Promise<RepositoryContext> => {
 		const cacheKey = buildRepoCacheKey(repo);
 
@@ -444,6 +517,8 @@ export const createGitBazClient = (options: GitBazClientOptions = {}): GitBazCli
 		getIssue,
 		getDiscussion,
 		getRepositoryContext,
+		getBusFactor,
+		getBlameAnalysis,
 		getVouchStatus,
 		isCollaborator,
 		postVouchAction,

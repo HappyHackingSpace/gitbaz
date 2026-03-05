@@ -1,5 +1,6 @@
 import { detectAutomation } from "../contributor/automation-detect.js";
 import type {
+	BusFactor,
 	CommitAuthorInfo,
 	ContributionRef,
 	ContributionStreak,
@@ -120,6 +121,7 @@ export interface GraphQLPullRequestResponse {
 			comments: { totalCount: number };
 			labels: { nodes: { name: string }[] };
 			closingIssuesReferences: { totalCount: number };
+			files?: { nodes: { path: string }[] };
 		} | null;
 	} | null;
 }
@@ -166,6 +168,7 @@ export const mapGraphQLToPullRequestContext = (
 		...(pr.headRefName && { headRefName: pr.headRefName }),
 		...(pr.body != null && { body: pr.body }),
 		...(commitAuthors && { commitAuthors }),
+		...(pr.files?.nodes && { filePaths: pr.files.nodes.map((f) => f.path) }),
 	};
 };
 
@@ -312,10 +315,48 @@ export interface GraphQLRepositoryResponse {
 	} | null;
 }
 
+// Blame mapper
+
+export interface GraphQLBlameRange {
+	commit: { author: { user: { login: string } | null } };
+	startingLine: number;
+	endingLine: number;
+}
+
+export interface GraphQLBlameResponse {
+	repository: {
+		ref: Record<string, { ranges: GraphQLBlameRange[] } | undefined> | null;
+	} | null;
+}
+
+export const mapBlameResponse = (
+	data: GraphQLBlameResponse,
+	filePaths: readonly string[],
+): Map<string, string[]> => {
+	const result = new Map<string, string[]>();
+	const ref = data.repository?.ref;
+	if (!ref) return result;
+
+	for (let i = 0; i < filePaths.length; i++) {
+		const blame = ref[`file${i}`];
+		if (!blame) continue;
+
+		const authorSet = new Set<string>();
+		for (const range of blame.ranges) {
+			const login = range.commit.author.user?.login;
+			if (login) authorSet.add(login);
+		}
+		result.set(filePaths[i], [...authorSet]);
+	}
+
+	return result;
+};
+
 export const mapGraphQLToRepositoryContext = (
 	data: GraphQLRepositoryResponse,
 	repo: RepoContext,
 	scorecard: ScorecardResult | null,
+	busFactor?: BusFactor | null,
 ): RepositoryContext | null => {
 	const r = data.repository;
 	if (!r) return null;
@@ -338,6 +379,7 @@ export const mapGraphQLToRepositoryContext = (
 		pushedAt: r.pushedAt,
 		defaultBranchCommits: r.defaultBranchRef?.target.history.totalCount ?? 0,
 		scorecard,
+		busFactor: busFactor ?? null,
 		fetchedAt: new Date().toISOString(),
 	};
 };

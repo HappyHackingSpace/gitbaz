@@ -499,6 +499,91 @@
 	gap: 4px;
 }
 
+/* Knowledge silo section */
+.gitbaz-silo-section {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--borderColor-default, #d0d7de);
+}
+
+.gitbaz-silo-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.gitbaz-silo-header .gitbaz-stat-label {
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-size: 11px;
+}
+
+.gitbaz-silo-files {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.gitbaz-silo-badge {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 1px 6px;
+	border-radius: 10px;
+	cursor: help;
+}
+
+.silo-critical {
+	background: var(--bgColor-danger-muted, #ffebe9);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+.silo-high {
+	background: var(--bgColor-attention-muted, #fff8c5);
+	color: var(--fgColor-attention, #9a6700);
+}
+
+.silo-ok {
+	background: var(--bgColor-success-muted, #dafbe1);
+	color: var(--fgColor-success, #1a7f37);
+}
+
+/* Bus factor indicator */
+.gitbaz-bf-indicator {
+	font-size: 12px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 12px;
+}
+
+.gitbaz-bf-risk {
+	font-size: 10px;
+	font-weight: 400;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+.bf-critical {
+	background: var(--bgColor-danger-muted, #ffebe9);
+	color: var(--fgColor-danger, #cf222e);
+}
+
+.bf-high {
+	background: var(--bgColor-attention-muted, #fff8c5);
+	color: var(--fgColor-attention, #9a6700);
+}
+
+.bf-moderate {
+	background: var(--bgColor-accent-muted, #ddf4ff);
+	color: var(--fgColor-accent, #0969da);
+}
+
+.bf-healthy {
+	background: var(--bgColor-success-muted, #dafbe1);
+	color: var(--fgColor-success, #1a7f37);
+}
+
 /* Bot panel */
 .gitbaz-bot-panel {
 	text-align: center;

@@ -1,8 +1,10 @@
 import type {
+	BusFactor,
 	ContributionRef,
 	ContributorActivity,
 	DiscussionContext,
 	IssueContext,
+	KnowledgeSiloResult,
 	PullRequestContext,
 	RepoContext,
 	RepositoryContext,
@@ -128,6 +130,29 @@ export interface RepoContextResponse {
 	error?: string;
 }
 
+export interface BusFactorRequest {
+	type: "GET_BUS_FACTOR";
+	repo: RepoContext;
+}
+
+export interface BusFactorResponse {
+	type: "BUS_FACTOR_RESULT";
+	result?: BusFactor | null;
+	error?: string;
+}
+
+export interface BlameAnalysisRequest {
+	type: "GET_BLAME_ANALYSIS";
+	repo: RepoContext;
+	filePaths: string[];
+}
+
+export interface BlameAnalysisResponse {
+	type: "BLAME_ANALYSIS_RESULT";
+	result?: KnowledgeSiloResult;
+	error?: string;
+}
+
 export interface OpenSettingsRequest {
 	type: "OPEN_SETTINGS";
 }
@@ -143,6 +168,8 @@ export type ExtensionMessage =
 	| VouchStatusRequest
 	| CollaboratorRequest
 	| VouchActionRequest
+	| BusFactorRequest
+	| BlameAnalysisRequest
 	| OpenSettingsRequest;
 
 export type ExtensionResponse =
@@ -155,4 +182,6 @@ export type ExtensionResponse =
 	| TokenResponse
 	| VouchStatusResponse
 	| CollaboratorResponse
-	| VouchActionResponse;
+	| VouchActionResponse
+	| BusFactorResponse
+	| BlameAnalysisResponse;

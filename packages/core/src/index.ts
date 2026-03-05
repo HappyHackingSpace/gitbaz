@@ -4,6 +4,8 @@ export type {
 	AISignal,
 	Badge,
 	BadgeId,
+	BusFactor,
+	BusFactorRisk,
 	CacheAdapter,
 	CommitAuthorInfo,
 	ContributionDay,
@@ -15,13 +17,16 @@ export type {
 	DiscussionContext,
 	DiscussionSummary,
 	EngagementLevel,
+	FileSilo,
 	GitBazClient,
 	GitBazClientOptions,
 	IssueContext,
 	IssueState,
 	IssueStateReason,
 	IssueSummary,
+	KnowledgeSiloResult,
 	Organization,
+	PRClassification,
 	PullRequestContext,
 	PullRequestState,
 	PullRequestSummary,
@@ -33,6 +38,7 @@ export type {
 	ScoreResult,
 	ScorecardCheck,
 	ScorecardResult,
+	SiloRisk,
 	SizeCategory,
 	Tier,
 	TierId,
@@ -65,6 +71,8 @@ export { summarizePullRequest } from "./context/pull-request.js";
 export { summarizeIssue } from "./context/issue.js";
 export { summarizeDiscussion } from "./context/discussion.js";
 export { detectAIGenerated } from "./context/ai-detect.js";
+
+export { analyzeKnowledgeSilos, computeBusFactor } from "./context/knowledge-silo.js";
 
 export { calculateStreaks } from "./activity/streaks.js";
 

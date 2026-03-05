@@ -113,6 +113,28 @@ export default defineBackground(() => {
 							error: (error as Error).message,
 						});
 					}
+				} else if (message.type === "GET_BUS_FACTOR") {
+					try {
+						const client = await createClient();
+						const result = await client.getBusFactor(message.repo);
+						sendResponse({ type: "BUS_FACTOR_RESULT", result });
+					} catch (error) {
+						sendResponse({
+							type: "BUS_FACTOR_RESULT",
+							error: (error as Error).message,
+						});
+					}
+				} else if (message.type === "GET_BLAME_ANALYSIS") {
+					try {
+						const client = await createClient();
+						const result = await client.getBlameAnalysis(message.repo, message.filePaths);
+						sendResponse({ type: "BLAME_ANALYSIS_RESULT", result });
+					} catch (error) {
+						sendResponse({
+							type: "BLAME_ANALYSIS_RESULT",
+							error: (error as Error).message,
+						});
+					}
 				} else if (message.type === "POST_VOUCH_ACTION") {
 					try {
 						const client = await createClient();

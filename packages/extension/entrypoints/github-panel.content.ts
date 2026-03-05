@@ -1,7 +1,9 @@
 import type {
+	BusFactor,
 	ContributorActivity,
 	DiscussionContext,
 	IssueContext,
+	KnowledgeSiloResult,
 	PullRequestContext,
 	RepoContext,
 	RepositoryContext,
@@ -18,6 +20,8 @@ import {
 import { parseGitHubUrl, toContributionRef, toRepoContext } from "../utils/github-url-parser.js";
 import type {
 	ActivityResponse,
+	BlameAnalysisResponse,
+	BusFactorResponse,
 	CollaboratorResponse,
 	DiscussionResponse,
 	IssueResponse,
@@ -305,7 +309,33 @@ const renderPullRequestContent = (ctx: PullRequestContext): string => {
 			? `<div class="gitbaz-badges">${ctx.labels.map((l) => `<span class="gitbaz-badge">${l}</span>`).join("")}</div>`
 			: "";
 
-	return `<div class="gitbaz-stats">${statRows.join("")}</div>${labelsHtml}`;
+	const siloPlaceholder = '<div class="gitbaz-silo-placeholder"></div>';
+
+	return `<div class="gitbaz-stats">${statRows.join("")}</div>${labelsHtml}${siloPlaceholder}`;
+};
+
+const renderSiloContent = (result: KnowledgeSiloResult): string => {
+	const atRisk = result.files.filter((f) => f.risk === "critical" || f.risk === "high");
+	if (atRisk.length === 0) return "";
+
+	const fileRows = atRisk
+		.map((f) => {
+			const riskClass = `silo-${f.risk}`;
+			const authors = f.topAuthors.join(", ") || "unknown";
+			return `<div class="gitbaz-stat-row">
+				<span class="gitbaz-stat-label" title="${f.path}">${f.path.split("/").pop()}</span>
+				<span class="gitbaz-silo-badge ${riskClass}" title="${authors}">${f.risk} (${f.uniqueAuthors})</span>
+			</div>`;
+		})
+		.join("");
+
+	return `<div class="gitbaz-silo-section">
+		<div class="gitbaz-silo-header">
+			<span class="gitbaz-stat-label">Knowledge Silos</span>
+			<span class="gitbaz-stat-value">${result.criticalCount + result.highCount} at risk</span>
+		</div>
+		<div class="gitbaz-silo-files">${fileRows}</div>
+	</div>`;
 };
 
 const renderIssueContent = (ctx: IssueContext): string => {
@@ -415,21 +445,16 @@ const formatTimeAgo = (dateStr: string): string => {
 	return `${years} yr${years > 1 ? "s" : ""} ago`;
 };
 
-const renderRepoContent = (ctx: RepositoryContext): string => {
-	const statRows = [
-		`<div class="gitbaz-repo-stats">
-			<span class="gitbaz-repo-stat">★ ${ctx.stars.toLocaleString()}</span>
-			<span class="gitbaz-repo-stat">🍴 ${ctx.forks.toLocaleString()}</span>
-			<span class="gitbaz-repo-stat">👁 ${ctx.watchers.toLocaleString()}</span>
-		</div>`,
-	];
+const renderBusFactor = (bf: BusFactor): string => {
+	const riskClass = `bf-${bf.risk}`;
+	return `<div class="gitbaz-stats"><div class="gitbaz-stat-row">
+		<span class="gitbaz-stat-label">Bus factor</span>
+		<span class="gitbaz-bf-indicator ${riskClass}" title="Min key developers: ${bf.factor}">${bf.factor} <span class="gitbaz-bf-risk">${bf.risk}</span></span>
+	</div></div>`;
+};
 
-	const metaParts: string[] = [];
-	if (ctx.language) metaParts.push(`<span class="gitbaz-repo-lang">${ctx.language}</span>`);
-	if (ctx.license) metaParts.push(`<span class="gitbaz-repo-license">${ctx.license}</span>`);
-	if (metaParts.length > 0) {
-		statRows.push(`<div class="gitbaz-repo-meta">${metaParts.join(" · ")}</div>`);
-	}
+const renderRepoContent = (ctx: RepositoryContext): string => {
+	const statRows: string[] = [];
 
 	if (ctx.isArchived) {
 		statRows.push(
@@ -437,20 +462,7 @@ const renderRepoContent = (ctx: RepositoryContext): string => {
 		);
 	}
 
-	const detailRows = [
-		`<div class="gitbaz-stat-row">
-			<span class="gitbaz-stat-label">Open issues</span>
-			<span class="gitbaz-stat-value">${ctx.openIssues.toLocaleString()}</span>
-		</div>`,
-		`<div class="gitbaz-stat-row">
-			<span class="gitbaz-stat-label">Open PRs</span>
-			<span class="gitbaz-stat-value">${ctx.openPRs.toLocaleString()}</span>
-		</div>`,
-		`<div class="gitbaz-stat-row">
-			<span class="gitbaz-stat-label">Total commits</span>
-			<span class="gitbaz-stat-value">${ctx.defaultBranchCommits.toLocaleString()}</span>
-		</div>`,
-	];
+	const detailRows: string[] = [];
 
 	if (ctx.pushedAt) {
 		detailRows.push(`<div class="gitbaz-stat-row">
@@ -463,6 +475,8 @@ const renderRepoContent = (ctx: RepositoryContext): string => {
 		<span class="gitbaz-stat-label">Created</span>
 		<span class="gitbaz-stat-value">${formatTimeAgo(ctx.createdAt)}</span>
 	</div>`);
+
+	const busFactorPlaceholder = '<div class="gitbaz-bf-placeholder"></div>';
 
 	let scorecardHtml = "";
 	if (ctx.scorecard) {
@@ -481,7 +495,7 @@ const renderRepoContent = (ctx: RepositoryContext): string => {
 		</div>`;
 	}
 
-	return `${statRows.join("")}<div class="gitbaz-stats">${detailRows.join("")}</div>${scorecardHtml}`;
+	return `${statRows.join("")}<div class="gitbaz-stats">${detailRows.join("")}</div>${busFactorPlaceholder}${scorecardHtml}`;
 };
 
 const renderActivityContent = (activity: ContributorActivity): string => {
@@ -897,6 +911,25 @@ const loadPanel = async (): Promise<void> => {
 					undefined,
 					repoTarget,
 				);
+				// Async-load bus factor (separate REST call, doesn't block panel)
+				const loadBusFactor = (attempt: number) => {
+					sendMsg<BusFactorResponse>({
+						type: "GET_BUS_FACTOR",
+						repo,
+					}).then((bfResponse) => {
+						if (isStale()) return;
+						const panel = document.getElementById(PANEL_ID);
+						const placeholder = panel?.shadowRoot?.querySelector(".gitbaz-bf-placeholder");
+						if (!placeholder) return;
+						if (bfResponse.result) {
+							placeholder.innerHTML = renderBusFactor(bfResponse.result);
+						} else if (attempt < 5) {
+							// GitHub returns 202 while computing stats — retry with backoff
+							setTimeout(() => loadBusFactor(attempt + 1), 3000 * (attempt + 1));
+						}
+					});
+				};
+				loadBusFactor(0);
 			} else {
 				injectPanel(
 					createErrorPanel(response.error ?? "Failed to load repository"),
@@ -957,6 +990,20 @@ const loadPanel = async (): Promise<void> => {
 						if (response.result) {
 							if (parsed.type === "pull") {
 								paneEl.innerHTML = renderPullRequestContent(response.result as PullRequestContext);
+								const prCtx = response.result as PullRequestContext;
+								if (prCtx.filePaths && prCtx.filePaths.length > 0 && ref) {
+									sendMsg<BlameAnalysisResponse>({
+										type: "GET_BLAME_ANALYSIS",
+										repo: { owner: ref.owner, repo: ref.repo },
+										filePaths: [...prCtx.filePaths],
+									}).then((siloResponse) => {
+										if (siloResponse.result) {
+											const placeholder = paneEl.querySelector(".gitbaz-silo-placeholder");
+											if (placeholder)
+												placeholder.innerHTML = renderSiloContent(siloResponse.result);
+										}
+									});
+								}
 							} else if (parsed.type === "issue") {
 								paneEl.innerHTML = renderIssueContent(response.result as IssueContext);
 							} else {
@@ -1065,6 +1112,19 @@ const loadPanel = async (): Promise<void> => {
 					if (response.result) {
 						if (parsed.type === "pull") {
 							paneEl.innerHTML = renderPullRequestContent(response.result as PullRequestContext);
+							const prCtx = response.result as PullRequestContext;
+							if (prCtx.filePaths && prCtx.filePaths.length > 0 && ref) {
+								sendMsg<BlameAnalysisResponse>({
+									type: "GET_BLAME_ANALYSIS",
+									repo: { owner: ref.owner, repo: ref.repo },
+									filePaths: [...prCtx.filePaths],
+								}).then((siloResponse) => {
+									if (siloResponse.result) {
+										const placeholder = paneEl.querySelector(".gitbaz-silo-placeholder");
+										if (placeholder) placeholder.innerHTML = renderSiloContent(siloResponse.result);
+									}
+								});
+							}
 						} else if (parsed.type === "issue") {
 							paneEl.innerHTML = renderIssueContent(response.result as IssueContext);
 						} else {

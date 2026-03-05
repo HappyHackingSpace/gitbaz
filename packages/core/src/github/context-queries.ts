@@ -30,6 +30,7 @@ export const PULL_REQUEST_QUERY = `
         comments { totalCount }
         labels(first: 20) { nodes { name } }
         closingIssuesReferences { totalCount }
+        files(first: 50) { nodes { path } }
       }
     }
   }

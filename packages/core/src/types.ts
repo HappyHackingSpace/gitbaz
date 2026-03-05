@@ -85,6 +85,7 @@ export interface PullRequestContext {
 	readonly headRefName?: string;
 	readonly body?: string;
 	readonly commitAuthors?: readonly CommitAuthorInfo[];
+	readonly filePaths?: readonly string[];
 }
 
 // Issue types
@@ -188,10 +189,22 @@ export interface CacheAdapter {
 export type SizeCategory = "xs" | "s" | "m" | "l" | "xl";
 export type EngagementLevel = "low" | "medium" | "high";
 
+export type PRClassification =
+	| "feature"
+	| "bugfix"
+	| "refactor"
+	| "test"
+	| "docs"
+	| "chore"
+	| "dependency"
+	| "mixed";
+
 export interface PullRequestSummary {
 	readonly sizeCategory: SizeCategory;
 	readonly isStale: boolean;
 	readonly timeToMergeLabel: string | null;
+	readonly estimatedReviewMinutes: number;
+	readonly classification: PRClassification;
 }
 
 export interface IssueSummary {
@@ -255,6 +268,33 @@ export interface ContributorActivity {
 	readonly fetchedAt: string;
 }
 
+// Knowledge silo types
+export type SiloRisk = "critical" | "high" | "ok" | "new-file";
+
+export interface FileSilo {
+	readonly path: string;
+	readonly uniqueAuthors: number;
+	readonly risk: SiloRisk;
+	readonly topAuthors: readonly string[];
+}
+
+export interface KnowledgeSiloResult {
+	readonly files: readonly FileSilo[];
+	readonly criticalCount: number;
+	readonly highCount: number;
+	readonly analyzedFiles: number;
+	readonly totalFiles: number;
+}
+
+// Bus factor types
+export type BusFactorRisk = "critical" | "high" | "moderate" | "healthy";
+
+export interface BusFactor {
+	readonly factor: number;
+	readonly risk: BusFactorRisk;
+	readonly topContributors: readonly { readonly login: string; readonly commits: number }[];
+}
+
 // Repository types
 export interface RepositoryContext {
 	readonly owner: string;
@@ -274,6 +314,7 @@ export interface RepositoryContext {
 	readonly pushedAt: string | null;
 	readonly defaultBranchCommits: number;
 	readonly scorecard: ScorecardResult | null;
+	readonly busFactor: BusFactor | null;
 	readonly fetchedAt: string;
 }
 
@@ -304,6 +345,8 @@ export interface GitBazClient {
 	getIssue(ref: ContributionRef): Promise<IssueContext>;
 	getDiscussion(ref: ContributionRef): Promise<DiscussionContext>;
 	getRepositoryContext(repo: RepoContext): Promise<RepositoryContext>;
+	getBusFactor(repo: RepoContext): Promise<BusFactor | null>;
+	getBlameAnalysis(repo: RepoContext, filePaths: readonly string[]): Promise<KnowledgeSiloResult>;
 	getVouchStatus(username: string, repo: RepoContext): Promise<VouchLookupResult>;
 	isCollaborator(repo: RepoContext): Promise<boolean>;
 	postVouchAction(

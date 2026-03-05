@@ -105,4 +105,71 @@ describe("summarizePullRequest", () => {
 			"1 minute",
 		);
 	});
+
+	it("estimates review time based on lines changed", () => {
+		const small = summarizePullRequest(basePR({ additions: 10, deletions: 5 }));
+		expect(small.estimatedReviewMinutes).toBe(7); // 5 + 15 * 0.1 = 6.5 → 7
+
+		const large = summarizePullRequest(basePR({ additions: 800, deletions: 500 }));
+		expect(large.estimatedReviewMinutes).toBe(120); // capped at 120
+	});
+
+	it("classifies bugfix PRs", () => {
+		expect(summarizePullRequest(basePR({ title: "fix: resolve login issue" })).classification).toBe(
+			"bugfix",
+		);
+	});
+
+	it("classifies feature PRs", () => {
+		expect(summarizePullRequest(basePR({ title: "feat: add dark mode" })).classification).toBe(
+			"feature",
+		);
+	});
+
+	it("classifies docs PRs", () => {
+		expect(summarizePullRequest(basePR({ title: "update docs for API" })).classification).toBe(
+			"docs",
+		);
+	});
+
+	it("classifies test PRs", () => {
+		expect(
+			summarizePullRequest(basePR({ title: "add unit tests for parser" })).classification,
+		).toBe("test");
+	});
+
+	it("classifies dependency PRs", () => {
+		expect(
+			summarizePullRequest(basePR({ title: "bump typescript from 5.0 to 5.1" })).classification,
+		).toBe("dependency");
+	});
+
+	it("classifies refactor PRs", () => {
+		expect(summarizePullRequest(basePR({ title: "refactor auth module" })).classification).toBe(
+			"refactor",
+		);
+	});
+
+	it("classifies chore PRs", () => {
+		expect(summarizePullRequest(basePR({ title: "chore: update CI config" })).classification).toBe(
+			"chore",
+		);
+	});
+
+	it("falls back to mixed for unclassifiable PRs", () => {
+		expect(summarizePullRequest(basePR({ title: "update stuff" })).classification).toBe("mixed");
+	});
+
+	it("classifies from branch name", () => {
+		expect(
+			summarizePullRequest(basePR({ title: "some changes", headRefName: "fix/login-bug" }))
+				.classification,
+		).toBe("bugfix");
+	});
+
+	it("classifies from labels", () => {
+		expect(
+			summarizePullRequest(basePR({ title: "some changes", labels: ["bug"] })).classification,
+		).toBe("bugfix");
+	});
 });
