@@ -591,11 +591,13 @@ const findAuthorUsername = (): string | undefined => {
 	const selectors = [
 		'a[data-testid="issue-body-header-author"]',
 		".gh-header-meta .author a",
-		".js-discussion .author",
 		".timeline-comment-header .author",
 		'[data-hovercard-type="user"].author',
 		'[data-hovercard-type="bot"].author',
 		".pull-header-username",
+		// Discussion pages: header meta author link
+		'h2.timeline-comment-header-text a[data-hovercard-type="user"]',
+		'.color-fg-muted > a[data-hovercard-type="user"]',
 	];
 
 	for (const selector of selectors) {
@@ -792,10 +794,10 @@ const loadActivityIntoPane = async (paneEl: HTMLElement, username: string): Prom
 	const placeholder = paneEl.querySelector(".gitbaz-activity-placeholder");
 	if (!placeholder) return;
 
-	const response = (await chrome.runtime.sendMessage({
+	const response = await sendMsg<ActivityResponse>({
 		type: "GET_ACTIVITY",
 		username,
-	})) as ActivityResponse;
+	});
 
 	if (response.result) {
 		placeholder.innerHTML = renderActivityContent(response.result);
@@ -813,10 +815,10 @@ const loadActivityIntoPlaceholder = (username: string): void => {
 	if (!placeholder) return;
 
 	(async () => {
-		const response = (await chrome.runtime.sendMessage({
+		const response = await sendMsg<ActivityResponse>({
 			type: "GET_ACTIVITY",
 			username,
-		})) as ActivityResponse;
+		});
 
 		if (response.result) {
 			placeholder.innerHTML = renderActivityContent(response.result);
@@ -826,19 +828,45 @@ const loadActivityIntoPlaceholder = (username: string): void => {
 	})();
 };
 
+// --- Helpers ---
+
+const waitFor = async <T>(fn: () => T | undefined, maxRetries: number, intervalMs: number): Promise<T | undefined> => {
+	let result = fn();
+	for (let i = 0; i < maxRetries && !result; i++) {
+		await new Promise((r) => setTimeout(r, intervalMs));
+		result = fn();
+	}
+	return result;
+};
+
+// --- Safe messaging ---
+
+const sendMsg = <T>(message: unknown): Promise<T> => {
+	if (!chrome.runtime?.id) return Promise.reject(new Error("context invalidated"));
+	return chrome.runtime.sendMessage(message) as Promise<T>;
+};
+
 // --- Main loader ---
 
 let lastUrl = "";
+let loadGeneration = 0;
 
 const loadPanel = async (): Promise<void> => {
+  try {
+	if (!chrome.runtime?.id) return;
+
 	const currentUrl = window.location.href;
 	if (currentUrl === lastUrl && document.getElementById(PANEL_ID)) return;
 	lastUrl = currentUrl;
 
+	const generation = ++loadGeneration;
+	const isStale = () => generation !== loadGeneration;
+
 	const parsed = parseGitHubUrl(currentUrl);
 	if (!parsed || parsed.type === "unknown") return;
 
-	const tokenResponse: TokenResponse = await chrome.runtime.sendMessage({ type: "GET_TOKEN" });
+	const tokenResponse = await sendMsg<TokenResponse>({ type: "GET_TOKEN" });
+	if (isStale()) return;
 	if (!tokenResponse.token) {
 		injectPanel(createSetupPanel());
 		return;
@@ -846,18 +874,19 @@ const loadPanel = async (): Promise<void> => {
 
 	// Repo pages: no author detection needed, show repo context directly
 	if (parsed.type === "repo") {
-		const repoTarget = findRepoSidebar();
-		if (!repoTarget) return;
+		const repoTarget = await waitFor(findRepoSidebar, 10, 300);
+		if (!repoTarget || isStale()) return;
 		injectPanel(
 			buildSinglePanel("Repository", '<span class="gitbaz-loading">Loading...</span>'),
 			undefined,
 			repoTarget,
 		);
 		const repo = toRepoContext(parsed);
-		const response = (await chrome.runtime.sendMessage({
+		const response = await sendMsg<RepoContextResponse>({
 			type: "GET_REPO_CONTEXT",
 			repo,
-		})) as RepoContextResponse;
+		});
+		if (isStale()) return;
 		if (response.result) {
 			injectPanel(
 				buildSinglePanel("Repository", renderRepoContent(response.result)),
@@ -874,8 +903,12 @@ const loadPanel = async (): Promise<void> => {
 		return;
 	}
 
-	const username = findAuthorUsername();
-	if (!username) return;
+	// Wait for both author and sidebar to be available after turbo navigation
+	const [username, sidebar] = await Promise.all([
+		waitFor(findAuthorUsername, 10, 300),
+		waitFor(findSidebar, 10, 300),
+	]);
+	if (!username || !sidebar || isStale()) return;
 
 	// Bots: show bot panel immediately, skip API call
 	const botCheck = detectBot(username);
@@ -911,10 +944,10 @@ const loadPanel = async (): Promise<void> => {
 							: parsed.type === "issue"
 								? "GET_ISSUE"
 								: "GET_DISCUSSION";
-					const response = (await chrome.runtime.sendMessage({
+					const response = await sendMsg<PullRequestResponse | IssueResponse | DiscussionResponse>({
 						type: msgType,
 						ref,
-					})) as PullRequestResponse | IssueResponse | DiscussionResponse;
+					});
 					if (response.result) {
 						if (parsed.type === "pull") {
 							paneEl.innerHTML = renderPullRequestContent(response.result as PullRequestContext);
@@ -970,20 +1003,20 @@ const loadPanel = async (): Promise<void> => {
 			if (tabId === "contributor") {
 				paneEl.innerHTML = loadingHtml;
 				const [scoreResponse, vouchResponse, collabResponse] = await Promise.all([
-					chrome.runtime.sendMessage({
+					sendMsg<ScoreResponse>({
 						type: "GET_SCORE",
 						username,
 						repo,
-					}) as Promise<ScoreResponse>,
-					chrome.runtime.sendMessage({
+					}),
+					sendMsg<VouchStatusResponse>({
 						type: "GET_VOUCH_STATUS",
 						username,
 						repo,
-					}) as Promise<VouchStatusResponse>,
-					chrome.runtime.sendMessage({
+					}),
+					sendMsg<CollaboratorResponse>({
 						type: "CHECK_COLLABORATOR",
 						repo,
-					}) as Promise<CollaboratorResponse>,
+					}),
 				]);
 
 				if (scoreResponse.result) {
@@ -1014,10 +1047,10 @@ const loadPanel = async (): Promise<void> => {
 						: parsed.type === "issue"
 							? "GET_ISSUE"
 							: "GET_DISCUSSION";
-				const response = (await chrome.runtime.sendMessage({
+				const response = await sendMsg<PullRequestResponse | IssueResponse | DiscussionResponse>({
 					type: msgType,
 					ref,
-				})) as PullRequestResponse | IssueResponse | DiscussionResponse;
+				});
 				if (response.result) {
 					if (parsed.type === "pull") {
 						paneEl.innerHTML = renderPullRequestContent(response.result as PullRequestContext);
@@ -1037,16 +1070,16 @@ const loadPanel = async (): Promise<void> => {
 		// No context (not a PR/issue/discussion page) — single contributor panel
 		injectPanel(createLoadingPanel());
 		const [scoreResponse, vouchResponse] = await Promise.all([
-			chrome.runtime.sendMessage({
+			sendMsg<ScoreResponse>({
 				type: "GET_SCORE",
 				username,
 				repo,
-			}) as Promise<ScoreResponse>,
-			chrome.runtime.sendMessage({
+			}),
+			sendMsg<VouchStatusResponse>({
 				type: "GET_VOUCH_STATUS",
 				username,
 				repo,
-			}) as Promise<VouchStatusResponse>,
+			}),
 		]);
 		if (scoreResponse.error) {
 			injectPanel(createErrorPanel(scoreResponse.error));
@@ -1058,6 +1091,9 @@ const loadPanel = async (): Promise<void> => {
 			loadActivityIntoPlaceholder(username);
 		}
 	}
+  } catch {
+	// Extension context invalidated or navigation race — ignore
+  }
 };
 
 export default defineContentScript({
@@ -1066,20 +1102,36 @@ export default defineContentScript({
 	main: () => {
 		loadPanel();
 
-		document.addEventListener("turbo:load", () => {
+		let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+		const scheduleLoad = () => {
+			clearTimeout(debounceTimer);
 			lastUrl = "";
-			loadPanel();
-		});
+			debounceTimer = setTimeout(() => loadPanel(), 150);
+		};
 
-		const observer = new MutationObserver(() => {
-			if (window.location.href !== lastUrl) {
-				loadPanel();
-			}
+		// GitHub uses Turbo for SPA navigation
+		document.addEventListener("turbo:load", scheduleLoad);
+		document.addEventListener("turbo:render", scheduleLoad);
+		document.addEventListener("turbo:frame-load", scheduleLoad);
+
+		// Fallback: detect URL changes via title mutations and popstate
+		const titleObserver = new MutationObserver(() => {
+			if (window.location.href !== lastUrl) scheduleLoad();
 		});
-		observer.observe(document.querySelector("head > title") ?? document.head, {
+		titleObserver.observe(document.querySelector("head > title") ?? document.head, {
 			childList: true,
 			subtree: true,
 			characterData: true,
 		});
+		window.addEventListener("popstate", scheduleLoad);
+
+		// Robust fallback: observe body for content changes (covers turbo-frame swaps)
+		const bodyObserver = new MutationObserver(() => {
+			const url = window.location.href;
+			if (url !== lastUrl || !document.getElementById(PANEL_ID)) {
+				scheduleLoad();
+			}
+		});
+		bodyObserver.observe(document.body, { childList: true, subtree: true });
 	},
 });

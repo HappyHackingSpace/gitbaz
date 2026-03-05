@@ -16,11 +16,26 @@ export const parseGitHubUrl = (url: string): ParsedGitHubUrl | undefined => {
 		const segments = parsed.pathname.split("/").filter(Boolean);
 		if (segments.length < 2) return undefined;
 
-		// Skip non-content paths
-		const NON_CONTENT_PREFIXES = ["settings", "marketplace", "explore", "topics", "sponsors"];
-		if (NON_CONTENT_PREFIXES.includes(segments[0])) return undefined;
+		// Skip GitHub global/non-repo paths
+		const NON_REPO_PREFIXES = [
+			"settings", "marketplace", "explore", "topics", "sponsors",
+			"issues", "pulls", "notifications", "new", "codespaces",
+			"features", "trending", "collections", "events", "about",
+			"pricing", "login", "signup", "organizations", "stars",
+		];
+		if (NON_REPO_PREFIXES.includes(segments[0])) return undefined;
 
-		// Org pages (/orgs/X/...) — return as unknown (contributor-only, no repo context)
+		// Org discussions: /orgs/X/discussions/N
+		if (segments[0] === "orgs" && segments[2] === "discussions" && segments[3]) {
+			return {
+				owner: segments[1],
+				repo: "",
+				type: "discussion",
+				number: Number.parseInt(segments[3], 10),
+			};
+		}
+
+		// Other org pages (/orgs/X/...) — no repo context
 		if (segments[0] === "orgs" && segments.length >= 2) {
 			return { owner: segments[1], repo: "", type: "unknown" };
 		}
@@ -49,12 +64,28 @@ export const parseGitHubUrl = (url: string): ParsedGitHubUrl | undefined => {
 	}
 };
 
-export const toRepoContext = (parsed: ParsedGitHubUrl): RepoContext => ({
-	owner: parsed.owner,
-	repo: parsed.repo,
-});
+/** Resolves the real repo for org discussions from sidebar data-url */
+const resolveOrgDiscussionRepo = (owner: string): string => {
+	const sidebar = document.querySelector<HTMLElement>("#partial-discussion-sidebar[data-url]");
+	const dataUrl = sidebar?.dataset.url;
+	if (dataUrl) {
+		const parts = dataUrl.split("/").filter(Boolean);
+		if (parts.length >= 3 && parts[0] === owner) return parts[1];
+	}
+	return "";
+};
+
+export const toRepoContext = (parsed: ParsedGitHubUrl): RepoContext => {
+	let { repo } = parsed;
+	if (!repo && parsed.type === "discussion") {
+		repo = resolveOrgDiscussionRepo(parsed.owner);
+	}
+	return { owner: parsed.owner, repo };
+};
 
 export const toContributionRef = (parsed: ParsedGitHubUrl): ContributionRef | undefined => {
 	if (parsed.number === undefined) return undefined;
-	return { owner: parsed.owner, repo: parsed.repo, number: parsed.number };
+	const { repo } = toRepoContext(parsed);
+	if (!repo) return undefined;
+	return { owner: parsed.owner, repo, number: parsed.number };
 };
