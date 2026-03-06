@@ -17,6 +17,8 @@ GitHub contributor context at a glance.
 - AI-generated PR detection
 - Repository health via OpenSSF Scorecard
 - Activity heatmap and streaks
+- Bus factor analysis (repo-level contributor risk)
+- Knowledge silo detection (PR-level file ownership via git blame)
 - Vouch integration (vouch/denounce/unvouch via VOUCHED.td)
 - CLI + Chrome Extension
 
