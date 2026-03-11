@@ -38,6 +38,12 @@ bunx gitbaz score octocat --repo facebook/react
 
 ### Chrome Extension
 
+<a href="https://chromewebstore.google.com/detail/gbppnbkklikljlpjpmfbfgldffcfcbal">
+  <img src="https://developer.chrome.com/static/docs/webstore/branding/image/iNEddTyWiMfLSwFD6qGq.png" alt="Available in the Chrome Web Store" height="58">
+</a>
+
+Or load from source:
+
 1. `bun install && bun run build`
 2. Open `chrome://extensions/`, enable Developer mode
 3. Load unpacked -> `packages/extension/.output/chrome-mv3/`
