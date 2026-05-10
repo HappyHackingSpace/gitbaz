@@ -152,6 +152,17 @@ export default defineBackground(() => {
 							error: (error as Error).message,
 						});
 					}
+				} else if (message.type === "SEARCH_USERS") {
+					try {
+						const client = await createClient();
+						const result = await client.searchUsers(message.query);
+						sendResponse({ type: "SEARCH_USERS_RESULT", result });
+					} catch (error) {
+						sendResponse({
+							type: "SEARCH_USERS_RESULT",
+							error: (error as Error).message,
+						});
+					}
 				} else if (message.type === "GET_TOKEN") {
 					const token = await getStoredToken();
 					sendResponse({ type: "TOKEN_RESULT", token });

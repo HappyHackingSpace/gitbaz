@@ -96,3 +96,19 @@ export const postVouchComment = async (
 	);
 	return response.data as { id: number; html_url: string };
 };
+
+/** Searches for users by login/username */
+export const searchUsers = async (
+	octokit: Octokit,
+	query: string,
+): Promise<{ login: string; avatar_url: string }[]> => {
+	try {
+		const response = await octokit.request("GET /search/users", {
+			q: query,
+			per_page: 5,
+		});
+		return (response.data as { items: { login: string; avatar_url: string }[] }).items;
+	} catch {
+		return [];
+	}
+};

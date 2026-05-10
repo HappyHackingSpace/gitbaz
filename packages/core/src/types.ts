@@ -146,6 +146,11 @@ export interface UserStats {
 	readonly automationReason?: string;
 }
 
+export interface UserSearchResult {
+	readonly login: string;
+	readonly avatarUrl: string;
+}
+
 export interface ScoreComponent {
 	readonly name: string;
 	readonly rawValue: number;
@@ -356,4 +361,5 @@ export interface GitBazClient {
 		targetUsername: string,
 		reason?: string,
 	): Promise<VouchActionResult>;
+	searchUsers(query: string): Promise<readonly UserSearchResult[]>;
 }

@@ -64,6 +64,7 @@ import {
 	countRepoPRsTotal,
 	fetchVouchFile,
 	postVouchComment,
+	searchUsers as searchUsersApi,
 } from "./rest-queries.js";
 import { fetchScorecard } from "./scorecard.js";
 
@@ -522,5 +523,9 @@ export const createGitBazClient = (options: GitBazClientOptions = {}): GitBazCli
 		getVouchStatus,
 		isCollaborator,
 		postVouchAction,
+		searchUsers: async (query: string) => {
+			const items = await searchUsersApi(octokit, query);
+			return items.map((i) => ({ login: i.login, avatarUrl: i.avatar_url }));
+		},
 	};
 };

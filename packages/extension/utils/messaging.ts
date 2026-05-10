@@ -9,6 +9,7 @@ import type {
 	RepoContext,
 	RepositoryContext,
 	ScoreResult,
+	UserSearchResult,
 	VouchAction,
 	VouchActionResult,
 	VouchLookupResult,
@@ -157,6 +158,17 @@ export interface OpenSettingsRequest {
 	type: "OPEN_SETTINGS";
 }
 
+export interface SearchUsersRequest {
+	type: "SEARCH_USERS";
+	query: string;
+}
+
+export interface SearchUsersResponse {
+	type: "SEARCH_USERS_RESULT";
+	result?: readonly UserSearchResult[];
+	error?: string;
+}
+
 export type ExtensionMessage =
 	| ScoreRequest
 	| PullRequestRequest
@@ -170,7 +182,8 @@ export type ExtensionMessage =
 	| VouchActionRequest
 	| BusFactorRequest
 	| BlameAnalysisRequest
-	| OpenSettingsRequest;
+	| OpenSettingsRequest
+	| SearchUsersRequest;
 
 export type ExtensionResponse =
 	| ScoreResponse
@@ -184,4 +197,5 @@ export type ExtensionResponse =
 	| CollaboratorResponse
 	| VouchActionResponse
 	| BusFactorResponse
-	| BlameAnalysisResponse;
+	| BlameAnalysisResponse
+	| SearchUsersResponse;

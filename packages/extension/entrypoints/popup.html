@@ -35,13 +35,37 @@
 		button.primary { background: #2da44e; color: #fff; border-color: #2da44e; }
 		button.primary:hover { background: #218838; }
 		#result { margin-top: 12px; white-space: pre-wrap; font-size: 12px; }
+		.search-results {
+			border: 1px solid #d0d7de;
+			border-radius: 6px;
+			margin-top: -4px;
+			margin-bottom: 8px;
+			background: #fff;
+			display: none;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+		.search-result-item {
+			padding: 8px 10px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.search-result-item:hover { background: #f6f8fa; }
+		.search-result-item img {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+		}
 	</style>
 </head>
 <body>
 	<h1>GitBaz</h1>
 	<div id="auth-status" class="status">Checking...</div>
 	<div id="lookup">
-		<input type="text" id="username" placeholder="GitHub username" />
+		<input type="text" id="username" placeholder="GitHub username" autocomplete="off" />
+		<div id="search-results" class="search-results"></div>
 		<button class="primary" id="lookup-btn">Get Contributor Score</button>
 	</div>
 	<div id="result"></div>
