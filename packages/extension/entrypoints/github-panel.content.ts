@@ -671,8 +671,14 @@ const findSidebar = (): Element | null => {
 };
 
 const findRepoSidebar = (): Element | null => {
-	// Try standard sidebar selectors first (works on some GitHub layouts)
-	const sidebarSelectors = [".Layout-sidebar", 'aside[role="complementary"]', ".BorderGrid"];
+	// New React code-view layout: About sidebar lives in a SplitPageLayout pane
+	const sidebarSelectors = [
+		'[data-component="SplitPageLayout.Pane"]',
+		'[class*="CodeViewSidebar-module__borderGrid"]',
+		".Layout-sidebar",
+		'aside[role="complementary"]',
+		".BorderGrid",
+	];
 
 	for (const selector of sidebarSelectors) {
 		const el = document.querySelector(selector);
