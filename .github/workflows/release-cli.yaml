@@ -34,7 +34,7 @@ jobs:
           tar -czf ../../gitbaz-cli-${{ steps.version.outputs.version }}.tar.gz dist/ package.json
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "CLI v${{ steps.version.outputs.version }}"
           files: gitbaz-cli-${{ steps.version.outputs.version }}.tar.gz

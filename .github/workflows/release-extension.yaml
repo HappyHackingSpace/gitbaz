@@ -34,7 +34,7 @@ jobs:
           zip -r ../../../../gitbaz-extension-${{ steps.version.outputs.version }}.zip .
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "Extension v${{ steps.version.outputs.version }}"
           files: gitbaz-extension-${{ steps.version.outputs.version }}.zip
