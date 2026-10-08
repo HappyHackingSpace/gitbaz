@@ -8,7 +8,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: mitchellh/vouch/action/check-issue@v1.4.2
+      - uses: mitchellh/vouch/action/check-issue@v1.5.0
         with:
           issue-number: ${{ github.event.issue.number }}
           auto-close: true
