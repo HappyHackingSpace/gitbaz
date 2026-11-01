@@ -104,6 +104,10 @@ packages/
   extension/  # WXT Chrome extension (Manifest V3)
 ```
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=HappyHackingSpace/gitbaz&type=Date)](https://star-history.com/#HappyHackingSpace/gitbaz&Date)
+
 ## License
 
 MIT - [Happy Hacking Space](https://github.com/happyhackingspace)
