@@ -42,6 +42,7 @@ export type {
 	SizeCategory,
 	Tier,
 	TierId,
+	UserSearchResult,
 	UserStats,
 	VouchAction,
 	VouchActionResult,
@@ -56,6 +57,7 @@ export {
 	DEFAULT_CACHE_TTL,
 	HALF_POINTS,
 	TIER_THRESHOLDS,
+	USER_SEARCH_CACHE_TTL,
 	VOUCH_CACHE_TTL,
 } from "./constants.js";
 

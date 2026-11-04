@@ -1,5 +1,5 @@
 import type { Octokit } from "@octokit/core";
-import type { RepoContext } from "../types.js";
+import type { RepoContext, UserSearchResult } from "../types.js";
 
 interface SearchResult {
 	readonly total_count: number;
@@ -95,4 +95,28 @@ export const postVouchComment = async (
 		},
 	);
 	return response.data as { id: number; html_url: string };
+};
+
+interface RestUserSearchItem {
+	readonly login: string;
+	readonly avatar_url: string;
+	readonly type: string;
+}
+
+/** Searches GitHub users by login prefix/substring (for autocomplete suggestions) */
+export const searchUsersByLogin = async (
+	octokit: Octokit,
+	query: string,
+	limit: number,
+): Promise<UserSearchResult[]> => {
+	const response = await octokit.request("GET /search/users", {
+		q: `${query} in:login`,
+		per_page: limit,
+	});
+	const items = (response.data as { items?: RestUserSearchItem[] }).items ?? [];
+	return items.map((item) => ({
+		login: item.login,
+		avatarUrl: item.avatar_url,
+		type: item.type === "Organization" || item.type === "Bot" ? item.type : "User",
+	}));
 };
