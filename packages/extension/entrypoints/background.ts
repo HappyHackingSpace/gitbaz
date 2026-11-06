@@ -36,6 +36,17 @@ export default defineBackground(() => {
 							error: errorMessage,
 						});
 					}
+				} else if (message.type === "SEARCH_USERS") {
+					try {
+						const client = await createClient();
+						const result = await client.searchUsers(message.query, message.limit);
+						sendResponse({ type: "SEARCH_USERS_RESULT", result });
+					} catch (error) {
+						sendResponse({
+							type: "SEARCH_USERS_RESULT",
+							error: (error as Error).message,
+						});
+					}
 				} else if (message.type === "GET_PULL_REQUEST") {
 					try {
 						const client = await createClient();

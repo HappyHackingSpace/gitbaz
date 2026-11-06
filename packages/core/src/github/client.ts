@@ -1,7 +1,7 @@
 import { Octokit } from "@octokit/core";
 import { calculateStreaks } from "../activity/streaks.js";
 import { buildCacheKey, buildContextCacheKey, buildRepoCacheKey } from "../cache/utils.js";
-import { DEFAULT_CACHE_TTL, VOUCH_CACHE_TTL } from "../constants.js";
+import { DEFAULT_CACHE_TTL, USER_SEARCH_CACHE_TTL, VOUCH_CACHE_TTL } from "../constants.js";
 import { analyzeKnowledgeSilos } from "../context/knowledge-silo.js";
 import { computeBusFactor } from "../context/knowledge-silo.js";
 import { detectBot } from "../contributor/bot-detect.js";
@@ -29,6 +29,7 @@ import type {
 	RepoContext,
 	RepositoryContext,
 	ScoreResult,
+	UserSearchResult,
 	UserStats,
 	VouchAction,
 	VouchActionResult,
@@ -64,6 +65,7 @@ import {
 	countRepoPRsTotal,
 	fetchVouchFile,
 	postVouchComment,
+	searchUsersByLogin,
 } from "./rest-queries.js";
 import { fetchScorecard } from "./scorecard.js";
 
@@ -429,6 +431,30 @@ export const createGitBazClient = (options: GitBazClientOptions = {}): GitBazCli
 		return result;
 	};
 
+	const searchUsers = async (query: string, limit = 6): Promise<readonly UserSearchResult[]> => {
+		// GitHub logins: alphanumerics and single hyphens, max 39 chars
+		const term = query.trim().replace(/^@/, "");
+		if (!term || !/^[a-zA-Z0-9-]{1,39}$/.test(term)) return [];
+
+		const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 20);
+		const cacheKey = `usersearch:${term.toLowerCase()}:${safeLimit}`;
+
+		if (cache) {
+			const cached = await cache.get<UserSearchResult[]>(cacheKey);
+			if (cached) return cached;
+		}
+
+		try {
+			const results = await searchUsersByLogin(octokit, term, safeLimit);
+			if (cache) {
+				await cache.set(cacheKey, results, USER_SEARCH_CACHE_TTL);
+			}
+			return results;
+		} catch (error) {
+			return handleApiError(error, term);
+		}
+	};
+
 	const postVouchAction = async (
 		repo: RepoContext,
 		issueNumber: number,
@@ -521,6 +547,7 @@ export const createGitBazClient = (options: GitBazClientOptions = {}): GitBazCli
 		getBlameAnalysis,
 		getVouchStatus,
 		isCollaborator,
+		searchUsers,
 		postVouchAction,
 	};
 };

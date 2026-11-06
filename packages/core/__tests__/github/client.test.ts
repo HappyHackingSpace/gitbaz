@@ -410,3 +410,78 @@ describe("getRepositoryContext", () => {
 		).rejects.toThrow(RepositoryNotFoundError);
 	});
 });
+
+describe("searchUsers", () => {
+	let mockOctokit: { graphql: ReturnType<typeof vi.fn>; request: ReturnType<typeof vi.fn> };
+
+	const searchResponse = {
+		data: {
+			total_count: 3,
+			items: [
+				{ login: "octocat", avatar_url: "https://avatars/1", type: "User" },
+				{ login: "octo-org", avatar_url: "https://avatars/2", type: "Organization" },
+				{ login: "octo-bot", avatar_url: "https://avatars/3", type: "Bot" },
+			],
+		},
+	};
+
+	beforeEach(async () => {
+		const { Octokit } = await import("@octokit/core");
+		mockOctokit = {
+			graphql: vi.fn(),
+			request: vi.fn().mockResolvedValue(searchResponse),
+		};
+		vi.mocked(Octokit).mockImplementation(() => mockOctokit as never);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("maps search results to UserSearchResult", async () => {
+		const client = createGitBazClient();
+		const results = await client.searchUsers("octo");
+
+		expect(mockOctokit.request).toHaveBeenCalledWith("GET /search/users", {
+			q: "octo in:login",
+			per_page: 6,
+		});
+		expect(results).toEqual([
+			{ login: "octocat", avatarUrl: "https://avatars/1", type: "User" },
+			{ login: "octo-org", avatarUrl: "https://avatars/2", type: "Organization" },
+			{ login: "octo-bot", avatarUrl: "https://avatars/3", type: "Bot" },
+		]);
+	});
+
+	it("strips a leading @ and clamps the limit", async () => {
+		const client = createGitBazClient();
+		await client.searchUsers("@octo", 100);
+		expect(mockOctokit.request).toHaveBeenCalledWith("GET /search/users", {
+			q: "octo in:login",
+			per_page: 20,
+		});
+	});
+
+	it("returns empty without calling the API for empty or invalid input", async () => {
+		const client = createGitBazClient();
+		expect(await client.searchUsers("")).toEqual([]);
+		expect(await client.searchUsers("   ")).toEqual([]);
+		expect(await client.searchUsers("bad user")).toEqual([]);
+		expect(await client.searchUsers("a+b:c")).toEqual([]);
+		expect(mockOctokit.request).not.toHaveBeenCalled();
+	});
+
+	it("caches search results", async () => {
+		const cache = new MemoryCacheAdapter();
+		const client = createGitBazClient({ cache });
+		await client.searchUsers("octo");
+		await client.searchUsers("OCTO");
+		expect(mockOctokit.request).toHaveBeenCalledTimes(1);
+	});
+
+	it("wraps 401 errors as AuthenticationError", async () => {
+		mockOctokit.request.mockRejectedValue(new Error("Bad credentials"));
+		const client = createGitBazClient();
+		await expect(client.searchUsers("octo")).rejects.toThrow(AuthenticationError);
+	});
+});

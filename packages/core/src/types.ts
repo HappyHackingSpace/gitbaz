@@ -336,6 +336,13 @@ export interface GitBazClientOptions {
 	readonly cacheTtlMs?: number;
 }
 
+/** A lightweight GitHub user match returned by user search (for autocomplete) */
+export interface UserSearchResult {
+	readonly login: string;
+	readonly avatarUrl: string;
+	readonly type: "User" | "Organization" | "Bot";
+}
+
 export interface GitBazClient {
 	getScore(username: string, repo?: RepoContext): Promise<ScoreResult>;
 	getStats(username: string, repo?: RepoContext): Promise<UserStats>;
@@ -349,6 +356,7 @@ export interface GitBazClient {
 	getBlameAnalysis(repo: RepoContext, filePaths: readonly string[]): Promise<KnowledgeSiloResult>;
 	getVouchStatus(username: string, repo: RepoContext): Promise<VouchLookupResult>;
 	isCollaborator(repo: RepoContext): Promise<boolean>;
+	searchUsers(query: string, limit?: number): Promise<readonly UserSearchResult[]>;
 	postVouchAction(
 		repo: RepoContext,
 		issueNumber: number,

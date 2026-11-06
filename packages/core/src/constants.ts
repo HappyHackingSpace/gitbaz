@@ -83,6 +83,7 @@ export const BADGE_DEFINITIONS: Readonly<Record<BadgeId, Badge>> = {
 
 export const DEFAULT_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 export const VOUCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — vouch files change when commands are issued
+export const USER_SEARCH_CACHE_TTL = 10 * 60 * 1000; // 10 minutes — autocomplete suggestions
 
 export function getTierForScore(score: number): Tier {
 	const clamped = Math.max(0, Math.min(100, Math.round(score)));

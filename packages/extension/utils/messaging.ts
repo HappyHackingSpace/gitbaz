@@ -9,6 +9,7 @@ import type {
 	RepoContext,
 	RepositoryContext,
 	ScoreResult,
+	UserSearchResult,
 	VouchAction,
 	VouchActionResult,
 	VouchLookupResult,
@@ -23,6 +24,18 @@ export interface ScoreRequest {
 export interface ScoreResponse {
 	type: "SCORE_RESULT";
 	result?: ScoreResult;
+	error?: string;
+}
+
+export interface SearchUsersRequest {
+	type: "SEARCH_USERS";
+	query: string;
+	limit?: number;
+}
+
+export interface SearchUsersResponse {
+	type: "SEARCH_USERS_RESULT";
+	result?: readonly UserSearchResult[];
 	error?: string;
 }
 
@@ -159,6 +172,7 @@ export interface OpenSettingsRequest {
 
 export type ExtensionMessage =
 	| ScoreRequest
+	| SearchUsersRequest
 	| PullRequestRequest
 	| IssueRequest
 	| DiscussionRequest
@@ -174,6 +188,7 @@ export type ExtensionMessage =
 
 export type ExtensionResponse =
 	| ScoreResponse
+	| SearchUsersResponse
 	| PullRequestResponse
 	| IssueResponse
 	| DiscussionResponse
