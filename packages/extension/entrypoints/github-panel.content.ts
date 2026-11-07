@@ -674,7 +674,7 @@ const findRepoSidebar = (): Element | null => {
 	// New React code-view layout: About sidebar lives in a SplitPageLayout pane
 	const sidebarSelectors = [
 		'[data-component="SplitPageLayout.Pane"]',
-		'[class*="CodeViewSidebar-module__borderGrid"]',
+		'[class*="CodeViewSidebar-module"][class*="borderGrid"]',
 		".Layout-sidebar",
 		'aside[role="complementary"]',
 		".BorderGrid",
@@ -685,7 +685,12 @@ const findRepoSidebar = (): Element | null => {
 		if (el) return el;
 	}
 
-	// Fallback: find the main content area of the repo page
+	return null;
+};
+
+// Last resort when the sidebar never renders. Kept separate from findRepoSidebar:
+// `main` always exists, so mixing it in made waitFor resolve before React hydrated the About pane.
+const findRepoContentFallback = (): Element | null => {
 	const fallbackSelectors = ["#repo-content-turbo-frame", ".repository-content", "main"];
 
 	for (const selector of fallbackSelectors) {
@@ -898,7 +903,7 @@ const loadPanel = async (): Promise<void> => {
 
 		// Repo pages: no author detection needed, show repo context directly
 		if (parsed.type === "repo") {
-			const repoTarget = await waitFor(findRepoSidebar, 10, 300);
+			const repoTarget = (await waitFor(findRepoSidebar, 10, 300)) ?? findRepoContentFallback();
 			if (!repoTarget || isStale()) return;
 			injectPanel(
 				buildSinglePanel("Repository", '<span class="gitbaz-loading">Loading...</span>'),
